@@ -85,7 +85,7 @@ interface AppState {
   currentUserRoles: Role[];
   currentUserId: string;
   isAuthenticated: boolean;
-  login: (username: string, password: string) => { success: boolean; message?: string };
+  login: (username: string, password: string) => { success: boolean; message?: string; isFirstLogin?: boolean };
   logout: () => void;
   addUser: (user: User) => Promise<void>;
   updateUser: (id: string, user: Partial<User>) => Promise<void>;
@@ -309,11 +309,11 @@ export const useStore = create<AppState>((set, get) => ({
     if (saved) return saved === 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   })(),
-  users: [],
-  performances: [],
+  users: mockUsers,
+  performances: mockPerformances,
   logs: [],
-  roles: [],
-  currentUserRoles: [],
+  roles: defaultRoles,
+  currentUserRoles: ['role_sysadmin'],
   currentUserId: '',
   isAuthenticated: false,
 
@@ -362,10 +362,24 @@ export const useStore = create<AppState>((set, get) => ({
     const { data: logs } = await supabase.from('logs').select('*').order('timestamp', { ascending: false });
     const { data: roles } = await supabase.from('roles').select('*');
 
-    set({
-      users: users || [],
-      performances: (performances || []).map(p => ({
+    const newState: any = {};
+    if (users && users.length > 0) {
+      newState.users = users.map(u => ({
+        ...u,
+        inGameUsername: u.in_game_username,
+        systemUsername: u.system_username,
+        fullName: u.full_name,
+        hasSystemAccess: u.has_system_access,
+        passwordResetRequired: u.password_reset_required,
+        discordId: u.discord_id,
+        statusChangedAt: u.status_changed_at
+      }));
+    }
+
+    if (performances && performances.length > 0) {
+      newState.performances = performances.map(p => ({
         ...p,
+        userId: p.user_id,
         participationEntries: p.participation_entries,
         bugReports: p.bug_reports,
         refereePerformance: p.referee_performance,
@@ -378,10 +392,24 @@ export const useStore = create<AppState>((set, get) => ({
         discordBan: p.discord_ban,
         discordMessageDelete: p.discord_message_delete,
         managerOpinion: p.manager_opinion
-      })),
-      logs: logs || [],
-      roles: roles || defaultRoles
-    });
+      }));
+    }
+
+    if (logs && logs.length > 0) {
+      newState.logs = logs.map(l => ({
+        ...l,
+        userId: l.user_id,
+        performedBy: l.performed_by
+      }));
+    }
+
+    if (roles && roles.length > 0) {
+      newState.roles = roles;
+    }
+
+    if (Object.keys(newState).length > 0) {
+      set(newState);
+    }
   },
 
   addUser: async (user) => {
@@ -482,7 +510,7 @@ export const useStore = create<AppState>((set, get) => ({
         currentUserRoles: user.roles,
         isAuthenticated: true
       });
-      return { success: true };
+      return { success: true, isFirstLogin: true };
     }
 
     if (user.password === password) {

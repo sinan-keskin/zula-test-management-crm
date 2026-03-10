@@ -43,6 +43,9 @@ export default function Login() {
         setTimeout(() => {
             const response = login(username, password);
             if (response.success) {
+                if (response.isFirstLogin) {
+                    alert('Bu hesabın ilk girişi! Şifreniz girdiğiniz değer olarak başarıyla belirlendi.');
+                }
                 navigate('/', { replace: true });
             } else {
                 setError(response.message || 'Giriş başarısız.');
