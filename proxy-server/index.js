@@ -9,9 +9,11 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
 
-// Supabase Bağlantısı (Kendi zaman diliminde çalıştığı için SSL hatası almaz)
-const supabaseUrl = process.env.SUPABASE_URL || 'https://qrpafzzkfydcytmvgql.supabase.co';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnBhZnp6a2Z5ZGN5dG12Z3FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjk0MjQsImV4cCI6MjA4ODc0NTQyNH0.LtvqeYaGCe5eBy9GAXCB3SKNDzWrjxfZ6DZDGQRoTd4';
+// Supabase Bağlantısı
+const supabaseUrl = (process.env.SUPABASE_URL || 'https://qrpafzzkfydcytmvgql.supabase.co').trim();
+const supabaseAnonKey = (process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnBhZnp6a2Z5ZGN5dG12Z3FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjk0MjQsImV4cCI6MjA4ODc0NTQyNH0.LtvqeYaGCe5eBy9GAXCB3SKNDzWrjxfZ6DZDGQRoTd4').trim();
+
+console.log(`Supabase Bağlantı Denemesi: ${supabaseUrl}`);
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // --- TEST / HEALTH CHECK ---
