@@ -1,5 +1,4 @@
 // Proxy URL - Render'da aldığınız adresi buraya yapıştırın
-// Örn: 'https://zula-proxy.onrender.com'
 const PROXY_BASE_URL = 'https://zula-proxy.onrender.com'; 
 
 export const proxyApi = {

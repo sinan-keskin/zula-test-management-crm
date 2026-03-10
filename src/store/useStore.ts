@@ -133,12 +133,12 @@ export const useStore = create<AppState>((set, get) => ({
       const roles = await proxyApi.getData('roles');
 
       if (users.error || performances.error) {
-         set({ users: [] });
-         return;
+        set({ users: [] });
+        return;
       }
 
       const newState: any = { roles: roles.length > 0 ? roles : defaultRoles };
-      
+
       if (Array.isArray(users)) {
         newState.users = users.map(u => ({
           ...u,
@@ -234,7 +234,7 @@ export const useStore = create<AppState>((set, get) => ({
       const data = await proxyApi.signIn(username, password);
       if (data.error) throw data.error;
 
-      const profile = await proxyApi.getData('users', { 
+      const profile = await proxyApi.getData('users', {
         email: `eq.${data.user.email}`,
         has_system_access: 'eq.true'
       });
@@ -255,6 +255,11 @@ export const useStore = create<AppState>((set, get) => ({
     } catch (err: any) {
       return { success: false, message: err.message || 'Giriş başarısız.' };
     }
+  },
+
+  logout: async () => {
+    await proxyApi.signOut();
+    set({ currentUserId: '', currentUserRoles: [], isAuthenticated: false });
   },
 
   checkAuth: async () => {
