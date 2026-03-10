@@ -311,19 +311,20 @@ export const useStore = create<AppState>((set, get) => ({
         throw new Error('Kullanıcı bilgileri alınamadı.');
       }
 
-      const profile = await proxyApi.getData('users', { 
+      const profileRes = await proxyApi.getData('users', { 
         email: `eq.${authData.user.email}`,
         has_system_access: 'eq.true'
       });
 
-      if (!profile || !Array.isArray(profile) || profile.length === 0) {
+      const profileList = profileRes.data || profileRes; // eski veya yeni format desteği
+      if (!profileList || !Array.isArray(profileList) || profileList.length === 0) {
         await proxyApi.signOut();
         return { success: false, message: 'Profil bulunamadı veya yetkiniz yok.' };
       }
 
       set({
-        currentUserId: profile[0].id,
-        currentUserRoles: profile[0].roles || [],
+        currentUserId: profileList[0].id,
+        currentUserRoles: profileList[0].roles || [],
         isAuthenticated: true
       });
 
