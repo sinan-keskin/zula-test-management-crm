@@ -191,8 +191,7 @@ const mockUsers: User[] = [
     roles: ['role_sysadmin'],
     status: 'Active',
     description: 'Main system administrator',
-    hasSystemAccess: true,
-    password: 'admin' // Varsayılan şifre eklendi (SSL hatasını baypas etmek için)
+    hasSystemAccess: true
   }
 ];
 
@@ -511,58 +510,64 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   login: async (username, password) => {
-    const state = get();
     const cleanUsername = username.toLowerCase().trim();
-    // Fallback if users list is empty (first run)
-    const usersToSearch = state.users.length > 0 ? state.users : mockUsers;
+    
+    try {
+      // Doğrudan Supabase'den kullanıcıyı çek (Live Query)
+      const { data: dbUsers, error } = await supabase
+        .from('users')
+        .select('*')
+        .or(`system_username.ilike.${cleanUsername},email.ilike.${cleanUsername}`)
+        .eq('has_system_access', true)
+        .limit(1);
 
-    const user = usersToSearch.find(u =>
-      (u.systemUsername?.toLowerCase() === cleanUsername ||
-        u.email?.toLowerCase() === cleanUsername) &&
-      u.hasSystemAccess
-    );
+      if (error) throw error;
 
-    if (!user) {
-      return { success: false, message: 'Kullanıcı bulunamadı veya sistem erişimi yok.' };
-    }
+      const dbUser = dbUsers?.[0];
 
-    if (!user.password) {
-      try {
-        const { error } = await supabase.from('users').update({ password: password }).eq('id', user.id);
-        if (error) {
-          console.error('Şifre güncellenemedi:', error.message);
-          return { success: false, message: 'Şifre kaydedilemedi: ' + error.message };
+      if (!dbUser) {
+        return { success: false, message: 'Kullanıcı bulunamadı veya sistem erişimi yok.' };
+      }
+
+      // Eğer kullanıcının şifresi yoksa (ilk giriş)
+      if (!dbUser.password) {
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({ password: password })
+          .eq('id', dbUser.id);
+        
+        if (updateError) {
+          return { success: false, message: 'İlk şifre belirlenemedi: ' + updateError.message };
         }
-      } catch (err) {
-        console.warn('Supabase SSL/Ağ hatası, yerel giriş yapılıyor:', err);
-        // SSL hatası durumunda bile girişe devam et (Graceful Fallback)
+        
+        await get().fetchInitialData();
         set({
-          currentUserId: user.id,
-          currentUserRoles: user.roles || [],
+          currentUserId: dbUser.id,
+          currentUserRoles: dbUser.roles || [],
           isAuthenticated: true
         });
         return { success: true, isFirstLogin: true };
       }
-      
-      await get().fetchInitialData();
-      set({
-        currentUserId: user.id,
-        currentUserRoles: user.roles || [],
-        isAuthenticated: true
-      });
-      return { success: true, isFirstLogin: true };
-    }
 
-    if (user.password === password) {
-      set({
-        currentUserId: user.id,
-        currentUserRoles: user.roles || [],
-        isAuthenticated: true
-      });
-      return { success: true };
-    }
+      // Şifre kontrolü (Veritabanındaki gerçek şifre ile)
+      if (dbUser.password === password) {
+        set({
+          currentUserId: dbUser.id,
+          currentUserRoles: dbUser.roles || [],
+          isAuthenticated: true
+        });
+        return { success: true };
+      }
 
-    return { success: false, message: 'Hatalı şifre.' };
+      return { success: false, message: 'Hatalı şifre.' };
+
+    } catch (err: any) {
+      console.error('Login hatası:', err);
+      return { 
+        success: false, 
+        message: 'Güvenli veritabanı bağlantısı kurulamadı. SSL sertifikası hatası (Tarih sorunu) veya ağ yok. Lütfen Supabase adresine gidip uyaruyu onaylayın.' 
+      };
+    }
   },
   logout: () => set({
     currentUserId: '',
