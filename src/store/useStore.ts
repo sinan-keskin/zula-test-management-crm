@@ -143,13 +143,15 @@ export const useStore = create<AppState>((set, get) => ({
       if (Array.isArray(users)) {
         newState.users = users.map(u => ({
           ...u,
-          inGameUsername: u.in_game_username,
-          systemUsername: u.system_username,
-          fullName: u.full_name,
+          inGameUsername: u.in_game_username || '',
+          systemUsername: u.system_username || '',
+          fullName: u.full_name || '',
+          description: u.description || '',
+          deactivationReason: u.deactivation_reason || '',
           hasSystemAccess: u.has_system_access,
           passwordResetRequired: u.password_reset_required,
-          discordId: u.discord_id,
-          statusChangedAt: u.status_changed_at
+          discordId: u.discord_id || '',
+          statusChangedAt: u.status_changed_at || ''
         }));
       }
 
@@ -202,26 +204,39 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   updateUser: async (id, updatedUser) => {
+    // 1. Optimistic Update: Yerel state'i anında güncelle
+    const previousUsers = get().users;
+    set(state => ({
+      users: state.users.map(u => u.id === id ? { ...u, ...updatedUser } : u)
+    }));
+
     const dbData: any = { id };
-    
-    // Tüm alanları Supabase (snake_case) formatına eşle
-    if (updatedUser.game) dbData.game = updatedUser.game;
-    if (updatedUser.region) dbData.region = updatedUser.region;
-    if (updatedUser.inGameUsername) dbData.in_game_username = updatedUser.inGameUsername;
-    if (updatedUser.systemUsername) dbData.system_username = updatedUser.systemUsername;
-    if (updatedUser.fullName) dbData.full_name = updatedUser.fullName;
-    if (updatedUser.email) dbData.email = updatedUser.email;
-    if (updatedUser.roles) dbData.roles = updatedUser.roles;
-    if (updatedUser.status) dbData.status = updatedUser.status;
+    if (updatedUser.game !== undefined) dbData.game = updatedUser.game;
+    if (updatedUser.region !== undefined) dbData.region = updatedUser.region;
+    if (updatedUser.inGameUsername !== undefined) dbData.in_game_username = updatedUser.inGameUsername;
+    if (updatedUser.systemUsername !== undefined) dbData.system_username = updatedUser.systemUsername;
+    if (updatedUser.fullName !== undefined) dbData.full_name = updatedUser.fullName;
+    if (updatedUser.email !== undefined) dbData.email = updatedUser.email;
+    if (updatedUser.roles !== undefined) dbData.roles = updatedUser.roles;
+    if (updatedUser.status !== undefined) dbData.status = updatedUser.status;
     if (updatedUser.description !== undefined) dbData.description = updatedUser.description;
-    if (updatedUser.statusChangedAt) dbData.status_changed_at = updatedUser.statusChangedAt;
+    if (updatedUser.statusChangedAt !== undefined) dbData.status_changed_at = updatedUser.statusChangedAt;
     if (updatedUser.deactivationReason !== undefined) dbData.deactivation_reason = updatedUser.deactivationReason;
     if (updatedUser.hasSystemAccess !== undefined) dbData.has_system_access = updatedUser.hasSystemAccess;
     if (updatedUser.passwordResetRequired !== undefined) dbData.password_reset_required = updatedUser.passwordResetRequired;
     if (updatedUser.discordId !== undefined) dbData.discord_id = updatedUser.discordId;
 
-    await proxyApi.patchData('users', dbData);
-    get().fetchInitialData();
+    try {
+      const response = await proxyApi.patchData('users', dbData);
+      if (response.error) throw response.error;
+      
+      // 2. Sunucudaki son hali doğrula (arka planda)
+      await get().fetchInitialData();
+    } catch (err) {
+      console.error('Kullanıcı güncelleme hatası:', err);
+      // Hata durumunda eski state'e geri dön
+      set({ users: previousUsers });
+    }
   },
 
   deleteUser: async (id) => {
