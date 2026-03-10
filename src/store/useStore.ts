@@ -357,63 +357,72 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   fetchInitialData: async () => {
-    const { data: users } = await supabase.from('users').select('*');
-    const { data: performances } = await supabase.from('performances').select('*');
-    const { data: logs } = await supabase.from('logs').select('*').order('timestamp', { ascending: false });
-    const { data: roles } = await supabase.from('roles').select('*');
+    try {
+      const { data: users, error: uError } = await supabase.from('users').select('*');
+      const { data: performances, error: pError } = await supabase.from('performances').select('*');
+      const { data: logs, error: lError } = await supabase.from('logs').select('*').order('timestamp', { ascending: false });
+      const { data: roles, error: rError } = await supabase.from('roles').select('*');
 
-    const newState: any = {};
-    if (users && users.length > 0) {
-      newState.users = users.map(u => ({
-        ...u,
-        inGameUsername: u.in_game_username,
-        systemUsername: u.system_username,
-        fullName: u.full_name,
-        email: u.email,
-        roles: u.roles,
-        status: u.status,
-        description: u.description,
-        hasSystemAccess: u.has_system_access,
-        passwordResetRequired: u.password_reset_required,
-        password: u.password,
-        discordId: u.discord_id,
-        statusChangedAt: u.status_changed_at
-      }));
-    }
+      if (uError || pError || lError || rError) {
+        console.warn('Supabase veri çekme hatası (Mock veriler kullanılacak):', uError || pError || lError || rError);
+        return;
+      }
 
-    if (performances && performances.length > 0) {
-      newState.performances = performances.map(p => ({
-        ...p,
-        userId: p.user_id,
-        participationEntries: p.participation_entries,
-        bugReports: p.bug_reports,
-        refereePerformance: p.referee_performance,
-        refereeEveryoneX: p.referee_everyone_x,
-        refereeSabotage: p.referee_sabotage,
-        refereeEntries: p.referee_entries,
-        refereeDetails: p.referee_details,
-        discordPc: p.discord_pc,
-        discordTimeout: p.discord_timeout,
-        discordBan: p.discord_ban,
-        discordMessageDelete: p.discord_message_delete,
-        managerOpinion: p.manager_opinion
-      }));
-    }
+      const newState: any = {};
+      if (users && users.length > 0) {
+        newState.users = users.map(u => ({
+          ...u,
+          inGameUsername: u.in_game_username,
+          systemUsername: u.system_username,
+          fullName: u.full_name,
+          email: u.email,
+          roles: u.roles || [],
+          status: u.status,
+          description: u.description,
+          hasSystemAccess: u.has_system_access,
+          passwordResetRequired: u.password_reset_required,
+          password: u.password,
+          discordId: u.discord_id,
+          statusChangedAt: u.status_changed_at
+        }));
+      }
 
-    if (logs && logs.length > 0) {
-      newState.logs = logs.map(l => ({
-        ...l,
-        userId: l.user_id,
-        performedBy: l.performed_by
-      }));
-    }
+      if (performances && performances.length > 0) {
+        newState.performances = performances.map(p => ({
+          ...p,
+          userId: p.user_id,
+          participationEntries: p.participation_entries,
+          bugReports: p.bug_reports,
+          refereePerformance: p.referee_performance,
+          refereeEveryoneX: p.referee_everyone_x,
+          refereeSabotage: p.referee_sabotage,
+          refereeEntries: p.referee_entries,
+          refereeDetails: p.referee_details,
+          discordPc: p.discord_pc,
+          discordTimeout: p.discord_timeout,
+          discordBan: p.discord_ban,
+          discordMessageDelete: p.discord_message_delete,
+          managerOpinion: p.manager_opinion
+        }));
+      }
 
-    if (roles && roles.length > 0) {
-      newState.roles = roles;
-    }
+      if (logs && logs.length > 0) {
+        newState.logs = logs.map(l => ({
+          ...l,
+          userId: l.user_id,
+          performedBy: l.performed_by
+        }));
+      }
 
-    if (Object.keys(newState).length > 0) {
-      set(newState);
+      if (roles && roles.length > 0) {
+        newState.roles = roles;
+      }
+
+      if (Object.keys(newState).length > 0) {
+        set(newState);
+      }
+    } catch (err) {
+      console.warn('Bağlantı kurulamadı (Çevrimdışı/SSL hatası). Yerel veriler kullanılıyor.');
     }
   },
 
@@ -517,18 +526,26 @@ export const useStore = create<AppState>((set, get) => ({
     }
 
     if (!user.password) {
-      const { error } = await supabase.from('users').update({ password: password }).eq('id', user.id);
-      if (error) {
-        console.error('Şifre güncellenemedi:', error.message);
-        return { success: false, message: 'Şifre kaydedilemedi: ' + error.message };
+      try {
+        const { error } = await supabase.from('users').update({ password: password }).eq('id', user.id);
+        if (error) {
+          console.error('Şifre güncellenemedi:', error.message);
+          return { success: false, message: 'Şifre kaydedilemedi: ' + error.message };
+        }
+        await get().fetchInitialData();
+        set({
+          currentUserId: user.id,
+          currentUserRoles: user.roles || [],
+          isAuthenticated: true
+        });
+        return { success: true, isFirstLogin: true };
+      } catch (err) {
+        console.error('Bağlantı hatası:', err);
+        return { 
+          success: false, 
+          message: 'Sistem bağlantı hatası (SSL/Ağ). Lütfen tarayıcıda Supabase adresine gidip uyaruyu onaylayın veya tarihi kontrol edin.' 
+        };
       }
-      await get().fetchInitialData();
-      set({
-        currentUserId: user.id,
-        currentUserRoles: user.roles || [],
-        isAuthenticated: true
-      });
-      return { success: true, isFirstLogin: true };
     }
 
     if (user.password === password) {
