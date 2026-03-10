@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import UsersPage from './pages/Users';
@@ -44,7 +44,7 @@ export default function App() {
   }, [isDark]);
 
   return (
-    <BrowserRouter basename="/zula-test-management-crm">
+    <HashRouter>
       <LanguageSelectionOverlay />
       <Routes>
         {/* Ana sayfa giriş yapmışsa dashboard'a, yapmamışsa login'e yönlendirir */}
@@ -65,7 +65,7 @@ export default function App() {
         
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
