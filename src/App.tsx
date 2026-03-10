@@ -28,6 +28,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const isDark = useStore(state => state.isDark);
+  const isAuthenticated = useStore(state => state.isAuthenticated);
   const fetchInitialData = useStore(state => state.fetchInitialData);
 
   React.useEffect(() => {
