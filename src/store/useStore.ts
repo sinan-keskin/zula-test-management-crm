@@ -203,13 +203,22 @@ export const useStore = create<AppState>((set, get) => ({
 
   updateUser: async (id, updatedUser) => {
     const dbData: any = { id };
+    
+    // Tüm alanları Supabase (snake_case) formatına eşle
+    if (updatedUser.game) dbData.game = updatedUser.game;
+    if (updatedUser.region) dbData.region = updatedUser.region;
     if (updatedUser.inGameUsername) dbData.in_game_username = updatedUser.inGameUsername;
     if (updatedUser.systemUsername) dbData.system_username = updatedUser.systemUsername;
     if (updatedUser.fullName) dbData.full_name = updatedUser.fullName;
-    if (updatedUser.hasSystemAccess !== undefined) dbData.has_system_access = updatedUser.hasSystemAccess;
-    if (updatedUser.status) dbData.status = updatedUser.status;
     if (updatedUser.email) dbData.email = updatedUser.email;
     if (updatedUser.roles) dbData.roles = updatedUser.roles;
+    if (updatedUser.status) dbData.status = updatedUser.status;
+    if (updatedUser.description !== undefined) dbData.description = updatedUser.description;
+    if (updatedUser.statusChangedAt) dbData.status_changed_at = updatedUser.statusChangedAt;
+    if (updatedUser.deactivationReason !== undefined) dbData.deactivation_reason = updatedUser.deactivationReason;
+    if (updatedUser.hasSystemAccess !== undefined) dbData.has_system_access = updatedUser.hasSystemAccess;
+    if (updatedUser.passwordResetRequired !== undefined) dbData.password_reset_required = updatedUser.passwordResetRequired;
+    if (updatedUser.discordId !== undefined) dbData.discord_id = updatedUser.discordId;
 
     await proxyApi.patchData('users', dbData);
     get().fetchInitialData();
@@ -227,11 +236,38 @@ export const useStore = create<AppState>((set, get) => ({
       ...updatedPerf
     };
 
+    // CamelCase -> Snake_case dönüşümleri
     if (updatedPerf.testParticipation !== undefined) dbData.test_participation = updatedPerf.testParticipation;
+    if (updatedPerf.participationEntries !== undefined) dbData.participation_entries = updatedPerf.participationEntries;
     if (updatedPerf.bugReports !== undefined) dbData.bug_reports = updatedPerf.bugReports;
-    // ... (Other performance fields mapping) ...
+    if (updatedPerf.refereePerformance !== undefined) dbData.referee_performance = updatedPerf.refereePerformance;
+    if (updatedPerf.refereeEveryoneX !== undefined) dbData.referee_everyone_x = updatedPerf.refereeEveryoneX;
+    if (updatedPerf.refereeSabotage !== undefined) dbData.referee_sabotage = updatedPerf.refereeSabotage;
+    if (updatedPerf.refereeEntries !== undefined) dbData.referee_entries = updatedPerf.refereeEntries;
+    if (updatedPerf.refereeDetails !== undefined) dbData.referee_details = updatedPerf.refereeDetails;
+    if (updatedPerf.discordPc !== undefined) dbData.discord_pc = updatedPerf.discordPc;
+    if (updatedPerf.discordTimeout !== undefined) dbData.discord_timeout = updatedPerf.discordTimeout;
+    if (updatedPerf.discordBan !== undefined) dbData.discord_ban = updatedPerf.discordBan;
+    if (updatedPerf.discordMessageDelete !== undefined) dbData.discord_message_delete = updatedPerf.discordMessageDelete;
+    if (updatedPerf.managerOpinion !== undefined) dbData.manager_opinion = updatedPerf.managerOpinion;
 
-    await proxyApi.postData('performances', dbData); // Upsert logic in proxy needed or handled as POST for new
+    // React state içinde kalan eski camelCase anahtarları temizle (Supabase hata vermesin diye)
+    delete dbData.testParticipation;
+    delete dbData.participationEntries;
+    delete dbData.bugReports;
+    delete dbData.refereePerformance;
+    delete dbData.refereeEveryoneX;
+    delete dbData.refereeSabotage;
+    delete dbData.refereeEntries;
+    delete dbData.refereeDetails;
+    delete dbData.discordPc;
+    delete dbData.discordTimeout;
+    delete dbData.discordBan;
+    delete dbData.discordMessageDelete;
+    delete dbData.managerOpinion;
+    delete dbData.userId; // user_id olarak zaten var
+
+    await proxyApi.postData('performances', dbData);
     get().fetchInitialData();
   },
 
