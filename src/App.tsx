@@ -1,0 +1,60 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import Layout from './components/Layout';
+import Dashboard from './pages/Dashboard';
+import UsersPage from './pages/Users';
+import PerformancePage from './pages/Performance';
+import AcademyPage from './pages/Academy';
+import RefereesPage from './pages/Referees';
+import ReportsPage from './pages/Reports';
+import LogsPage from './pages/Logs';
+import SettingsPage from './pages/Settings';
+import LoginPage from './pages/Login';
+import { useStore } from './store/useStore';
+import LanguageSelectionOverlay from './components/LanguageSelectionOverlay';
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const isAuthenticated = useStore(state => state.isAuthenticated);
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+}
+
+export default function App() {
+  const isDark = useStore(state => state.isDark);
+
+  React.useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDark]);
+
+  return (
+    <BrowserRouter>
+      <LanguageSelectionOverlay />
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+          <Route index element={<Dashboard />} />
+          <Route path="users" element={<UsersPage />} />
+          <Route path="performance" element={<PerformancePage />} />
+          <Route path="academy" element={<AcademyPage />} />
+          <Route path="referees" element={<RefereesPage />} />
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="logs" element={<LogsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
