@@ -29,30 +29,30 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { path: '/', icon: LayoutDashboard, label: 'dashboard' },
+  { path: '/dashboard', icon: LayoutDashboard, label: 'dashboard' },
   {
-    path: '/users',
+    path: '/dashboard/users',
     icon: Users,
     label: 'users',
     children: [
-      { path: '/academy', icon: GraduationCap, label: 'academy' },
-      { path: '/referees', icon: Scale, label: 'referees' },
+      { path: '/dashboard/academy', icon: GraduationCap, label: 'academy' },
+      { path: '/dashboard/referees', icon: Scale, label: 'referees' },
     ]
   },
   {
-    path: '/performance',
+    path: '/dashboard/performance',
     icon: BarChart2,
     label: 'performanceManagement',
     children: [
-      { path: '/reports', icon: FileText, label: 'performanceReports' },
+      { path: '/dashboard/reports', icon: FileText, label: 'performanceReports' },
     ]
   },
   {
-    path: '/settings',
+    path: '/dashboard/settings',
     icon: Settings,
     label: 'settings',
     children: [
-      { path: '/logs', icon: ScrollText, label: 'logs' },
+      { path: '/dashboard/logs', icon: ScrollText, label: 'logs' },
     ]
   },
 ];

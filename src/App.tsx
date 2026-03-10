@@ -46,8 +46,11 @@ export default function App() {
     <BrowserRouter basename="/zula-test-management-crm">
       <LanguageSelectionOverlay />
       <Routes>
+        {/* Ana sayfa giriş yapmışsa dashboard'a, yapmamışsa login'e yönlendirir */}
+        <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
+        
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        
         <Route path="/dashboard" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<Dashboard />} />
           <Route path="users" element={<UsersPage />} />
@@ -57,8 +60,9 @@ export default function App() {
           <Route path="reports" element={<ReportsPage />} />
           <Route path="logs" element={<LogsPage />} />
           <Route path="settings" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
+        
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
