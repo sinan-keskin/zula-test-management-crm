@@ -85,7 +85,7 @@ interface AppState {
   currentUserRoles: Role[];
   currentUserId: string;
   isAuthenticated: boolean;
-  login: (username: string, password: string) => { success: boolean; message?: string; isFirstLogin?: boolean };
+  login: (username: string, password: string) => Promise<{ success: boolean; message?: string; isFirstLogin?: boolean }>;
   logout: () => void;
   addUser: (user: User) => Promise<void>;
   updateUser: (id: string, user: Partial<User>) => Promise<void>;
@@ -500,7 +500,7 @@ export const useStore = create<AppState>((set, get) => ({
     if (!error) get().fetchInitialData();
   },
 
-  login: (username, password) => {
+  login: async (username, password) => {
     const state = get();
     const cleanUsername = username.toLowerCase().trim();
     // Fallback if users list is empty (first run)
@@ -517,26 +517,24 @@ export const useStore = create<AppState>((set, get) => ({
     }
 
     if (!user.password) {
-      return (async () => {
-        const { error } = await supabase.from('users').update({ password: password }).eq('id', user.id);
-        if (error) {
-          console.error('Şifre güncellenemedi:', error.message);
-          return { success: false, message: 'Şifre kaydedilemedi: ' + error.message };
-        }
-        await get().fetchInitialData();
-        set({
-          currentUserId: user.id,
-          currentUserRoles: user.roles || [],
-          isAuthenticated: true
-        });
-        return { success: true, isFirstLogin: true };
-      })();
+      const { error } = await supabase.from('users').update({ password: password }).eq('id', user.id);
+      if (error) {
+        console.error('Şifre güncellenemedi:', error.message);
+        return { success: false, message: 'Şifre kaydedilemedi: ' + error.message };
+      }
+      await get().fetchInitialData();
+      set({
+        currentUserId: user.id,
+        currentUserRoles: user.roles || [],
+        isAuthenticated: true
+      });
+      return { success: true, isFirstLogin: true };
     }
 
     if (user.password === password) {
       set({
         currentUserId: user.id,
-        currentUserRoles: user.roles,
+        currentUserRoles: user.roles || [],
         isAuthenticated: true
       });
       return { success: true };
