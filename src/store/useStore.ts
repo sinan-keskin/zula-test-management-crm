@@ -88,6 +88,7 @@ interface AppState {
   logout: () => Promise<void>;
   addUser: (user: User) => Promise<void>;
   updateUser: (id: string, user: Partial<User>) => Promise<void>;
+  deleteUser: (id: string) => Promise<void>;
   updatePerformance: (userId: string, period: string, perf: Partial<Performance>) => Promise<void>;
   setCurrentUserRoles: (roles: Role[]) => void;
   addRole: (role: RoleDefinition) => Promise<void>;
@@ -211,6 +212,11 @@ export const useStore = create<AppState>((set, get) => ({
     if (updatedUser.roles) dbData.roles = updatedUser.roles;
 
     await proxyApi.patchData('users', dbData);
+    get().fetchInitialData();
+  },
+
+  deleteUser: async (id) => {
+    await proxyApi.deleteData('users', id);
     get().fetchInitialData();
   },
 

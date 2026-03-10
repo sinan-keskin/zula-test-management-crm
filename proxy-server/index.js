@@ -82,8 +82,16 @@ app.post('/api/:table', async (req, res) => {
     const payload = req.body;
     
     try {
-        const { data, error } = await supabase.from(table).insert(payload);
-        if (error) return res.status(400).json(error);
+        // Performans tablosu için upsert (onConflict: user_id, period) kullanıyoruz
+        let query = supabase.from(table).upsert(payload, { 
+            onConflict: table === 'performances' ? 'user_id,period' : 'id' 
+        });
+
+        const { data, error } = await query;
+        if (error) {
+            console.error(`Supa Post/Upsert Hatası [${table}]:`, error.message);
+            return res.status(400).json(error);
+        }
         res.json(data);
     } catch (e) {
         res.status(500).json({ message: e.message });
@@ -96,6 +104,17 @@ app.patch('/api/:table', async (req, res) => {
     
     try {
         const { data, error } = await supabase.from(table).update(payload).eq('id', id);
+        if (error) return res.status(400).json(error);
+        res.json(data);
+    } catch (e) {
+        res.status(500).json({ message: e.message });
+    }
+});
+
+app.delete('/api/:table/:id', async (req, res) => {
+    const { table, id } = req.params;
+    try {
+        const { data, error } = await supabase.from(table).delete().eq('id', id);
         if (error) return res.status(400).json(error);
         res.json(data);
     } catch (e) {
