@@ -38,11 +38,12 @@ export default function App() {
   }, [isDark]);
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/zula-test-management-crm">
       <LanguageSelectionOverlay />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/dashboard" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<Dashboard />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="performance" element={<PerformancePage />} />
