@@ -231,15 +231,24 @@ export const useStore = create<AppState>((set, get) => ({
 
   login: async (username, password) => {
     try {
-      const data = await proxyApi.signIn(username, password);
-      if (data.error) throw data.error;
+      const response = await proxyApi.signIn(username, password);
+      
+      // Hata kontrolü
+      if (response.error) {
+        throw response.error;
+      }
 
-      const profile = await proxyApi.getData('users', {
-        email: `eq.${data.user.email}`,
+      const authData = response.data;
+      if (!authData?.user?.email) {
+        throw new Error('Kullanıcı bilgileri alınamadı.');
+      }
+
+      const profile = await proxyApi.getData('users', { 
+        email: `eq.${authData.user.email}`,
         has_system_access: 'eq.true'
       });
 
-      if (!profile || profile.length === 0) {
+      if (!profile || !Array.isArray(profile) || profile.length === 0) {
         await proxyApi.signOut();
         return { success: false, message: 'Profil bulunamadı veya yetkiniz yok.' };
       }
@@ -253,7 +262,10 @@ export const useStore = create<AppState>((set, get) => ({
       await get().fetchInitialData();
       return { success: true };
     } catch (err: any) {
-      return { success: false, message: err.message || 'Giriş başarısız.' };
+      console.error('Login Hatası:', err);
+      let msg = err.message || 'Giriş başarısız.';
+      if (msg.includes('Invalid login credentials')) msg = 'Hatalı e-posta veya şifre.';
+      return { success: false, message: msg };
     }
   },
 
