@@ -169,9 +169,25 @@ export default function Login() {
                         </div>
 
                         {error && (
-                            <div className="animate-in fade-in slide-in-from-top-2 bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-xl flex items-center gap-3 text-sm">
-                                <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                                {error}
+                            <div className="animate-in fade-in slide-in-from-top-2 flex flex-col gap-3">
+                                <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-xl flex items-center gap-3 text-sm">
+                                    <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                                    {error}
+                                </div>
+                                {error.includes('SSL') && (
+                                    <div className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 px-4 py-3 rounded-xl flex flex-col gap-2 text-xs">
+                                        <p className="font-bold">⚠️ Önemli Çözüm:</p>
+                                        <p>Bilgisayarınızın tarihi (2026) nedeniyle bağlantı engelleniyor. Lütfen aşağıdaki butona tıklayıp açılan sayfada <b>"Gelişmiş → Devam Et"</b> diyerek bağlantıyı onaylayın, sonra buraya dönüp tekrar giriş yapın.</p>
+                                        <a 
+                                            href="https://qrpafzzkfydcytmvgql.supabase.co/rest/v1/" 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="bg-indigo-600 text-white text-center py-2 rounded-lg font-bold hover:bg-indigo-700 transition-colors"
+                                        >
+                                            Bağlantıyı Onayla ve Güven
+                                        </a>
+                                    </div>
+                                )}
                             </div>
                         )}
 
