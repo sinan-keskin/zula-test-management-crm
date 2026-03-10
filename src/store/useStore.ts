@@ -369,8 +369,13 @@ export const useStore = create<AppState>((set, get) => ({
         inGameUsername: u.in_game_username,
         systemUsername: u.system_username,
         fullName: u.full_name,
+        email: u.email,
+        roles: u.roles,
+        status: u.status,
+        description: u.description,
         hasSystemAccess: u.has_system_access,
         passwordResetRequired: u.password_reset_required,
+        password: u.password,
         discordId: u.discord_id,
         statusChangedAt: u.status_changed_at
       }));
@@ -497,7 +502,15 @@ export const useStore = create<AppState>((set, get) => ({
 
   login: (username, password) => {
     const state = get();
-    const user = state.users.find(u => (u.systemUsername === username || u.email === username) && u.hasSystemAccess);
+    const cleanUsername = username.toLowerCase().trim();
+    // Fallback if users list is empty (first run)
+    const usersToSearch = state.users.length > 0 ? state.users : mockUsers;
+
+    const user = usersToSearch.find(u =>
+      (u.systemUsername?.toLowerCase() === cleanUsername ||
+        u.email?.toLowerCase() === cleanUsername) &&
+      u.hasSystemAccess
+    );
 
     if (!user) {
       return { success: false, message: 'Kullanıcı bulunamadı veya sistem erişimi yok.' };
