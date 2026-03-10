@@ -36,7 +36,6 @@ export interface User {
   hasSystemAccess?: boolean;
   passwordResetRequired?: boolean;
   discordId?: string;
-  password?: string;
 }
 
 export interface ParticipationEntry {
@@ -86,7 +85,7 @@ interface AppState {
   currentUserId: string;
   isAuthenticated: boolean;
   login: (username: string, password: string) => Promise<{ success: boolean; message?: string; isFirstLogin?: boolean }>;
-  logout: () => void;
+  logout: () => Promise<void>;
   addUser: (user: User) => Promise<void>;
   updateUser: (id: string, user: Partial<User>) => Promise<void>;
   updatePerformance: (userId: string, period: string, perf: Partial<Performance>) => Promise<void>;
@@ -94,6 +93,7 @@ interface AppState {
   addRole: (role: RoleDefinition) => Promise<void>;
   updateRole: (id: string, role: Partial<RoleDefinition>) => Promise<void>;
   fetchInitialData: () => Promise<void>;
+  checkAuth: () => Promise<void>;
   isDark: boolean;
   setIsDark: (isDark: boolean) => void;
 }
@@ -152,7 +152,6 @@ export const useStore = create<AppState>((set, get) => ({
           description: u.description,
           hasSystemAccess: u.has_system_access,
           passwordResetRequired: u.password_reset_required,
-          password: u.password,
           discordId: u.discord_id,
           statusChangedAt: u.status_changed_at
         }));
@@ -283,70 +282,99 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   login: async (username, password) => {
-    const cleanUsername = username.toLowerCase().trim();
-    
+    const cleanInput = username.trim();
+    let email = cleanInput;
+
     try {
-      // Doğrudan Supabase'den kullanıcıyı çek (Live Query)
-      const { data: dbUsers, error } = await supabase
+      // Eğer kullanıcı adı girildiyse, veritabanından e-postasını bulalım
+      if (!cleanInput.includes('@')) {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('email')
+          .ilike('system_username', cleanInput)
+          .single();
+        
+        if (userData?.email) {
+          email = userData.email;
+        } else if (userError) {
+          console.warn('Kullanıcı adına göre e-posta bulunamadı:', userError.message);
+        }
+      }
+
+      // Supabase Auth ile giriş yap
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) throw authError;
+
+      const authUser = data.user;
+      if (!authUser) throw new Error('Kimlik bilgileri alınamadı.');
+
+      // Profil verilerini çek
+      const { data: profiles, error: profileError } = await supabase
         .from('users')
         .select('*')
-        .or(`system_username.ilike.${cleanUsername},email.ilike.${cleanUsername}`)
+        .eq('email', authUser.email)
         .eq('has_system_access', true)
         .limit(1);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+      const profile = profiles?.[0];
 
-      const dbUser = dbUsers?.[0];
-
-      if (!dbUser) {
-        return { success: false, message: 'Kullanıcı bulunamadı veya sistem erişimi yok.' };
+      if (!profile) {
+        // Eğer Auth'da var ama users tablosunda yoksa/erişimi yoksa
+        await supabase.auth.signOut();
+        return { success: false, message: 'Sistem profiliniz bulunamadı veya yetkiniz yok.' };
       }
 
-      // Eğer kullanıcının şifresi yoksa (ilk giriş)
-      if (!dbUser.password) {
-        const { error: updateError } = await supabase
-          .from('users')
-          .update({ password: password })
-          .eq('id', dbUser.id);
-        
-        if (updateError) {
-          return { success: false, message: 'İlk şifre belirlenemedi: ' + updateError.message };
-        }
-        
-        await get().fetchInitialData();
-        set({
-          currentUserId: dbUser.id,
-          currentUserRoles: dbUser.roles || [],
-          isAuthenticated: true
-        });
-        return { success: true, isFirstLogin: true };
-      }
+      set({
+        currentUserId: profile.id,
+        currentUserRoles: profile.roles || [],
+        isAuthenticated: true
+      });
 
-      // Şifre kontrolü (Veritabanındaki gerçek şifre ile)
-      if (dbUser.password === password) {
-        set({
-          currentUserId: dbUser.id,
-          currentUserRoles: dbUser.roles || [],
-          isAuthenticated: true
-        });
-        return { success: true };
-      }
-
-      return { success: false, message: 'Hatalı şifre.' };
+      await get().fetchInitialData();
+      return { success: true };
 
     } catch (err: any) {
-      console.error('Login hatası:', err);
-      return { 
-        success: false, 
-        message: 'Güvenli veritabanı bağlantısı kurulamadı. SSL sertifikası hatası (Tarih sorunu) veya ağ yok. Lütfen Supabase adresine gidip uyaruyu onaylayın.' 
-      };
+      console.error('Auth Login hatası:', err.message);
+      let msg = 'Giriş başarısız: ' + err.message;
+      if (err.message.includes('Invalid login credentials')) msg = 'Hatalı e-posta/kullanıcı adı veya şifre.';
+      if (err.message.includes('Failed to fetch')) msg = 'Güvenli bağlantı kurulamadı (SSL/Tarih hatası).';
+      
+      return { success: false, message: msg };
     }
   },
-  logout: () => set({
-    currentUserId: '',
-    currentUserRoles: [],
-    isAuthenticated: false
-  }),
+  logout: async () => {
+    await supabase.auth.signOut();
+    set({
+      currentUserId: '',
+      currentUserRoles: [],
+      isAuthenticated: false
+    });
+  },
+  checkAuth: async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      const { data: profile } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', session.user.email)
+        .eq('has_system_access', true)
+        .single();
+
+      if (profile) {
+        set({
+          currentUserId: profile.id,
+          currentUserRoles: profile.roles || [],
+          isAuthenticated: true
+        });
+        await get().fetchInitialData();
+      }
+    }
+  },
   setIsDark: (isDark) => {
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
     if (isDark) {

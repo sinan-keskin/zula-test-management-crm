@@ -30,10 +30,16 @@ export default function App() {
   const isDark = useStore(state => state.isDark);
   const isAuthenticated = useStore(state => state.isAuthenticated);
   const fetchInitialData = useStore(state => state.fetchInitialData);
+  const checkAuth = useStore(state => state.checkAuth);
 
   React.useEffect(() => {
-    fetchInitialData();
-  }, [fetchInitialData]);
+    const init = async () => {
+      await checkAuth();
+      // fetchInitialData checkAuth içinde de çağrılıyor ama garantiye alalım
+      await fetchInitialData();
+    };
+    init();
+  }, [checkAuth, fetchInitialData]);
 
   React.useEffect(() => {
     if (isDark) {
