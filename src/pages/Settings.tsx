@@ -140,6 +140,35 @@ export default function SettingsPage() {
       </div>
 
       {isSysAdmin && (
+        <div className="bg-white dark:bg-[#16181d] rounded-2xl border border-dotted border-indigo-200 dark:border-indigo-500/30 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-gray-100 dark:border-gray-800/60 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Shield className="w-5 h-5 text-indigo-500" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Veritabanı Yönetimi (Supabase)</h3>
+            </div>
+            <button
+              onClick={async () => {
+                const confirm = window.confirm('Mevcut örnek verileri (Ahmet, Mehmet vb.) Supabase veritabanına aktarmak istediğinize emin misiniz?');
+                if (confirm) {
+                  const result = await useStore.getState().migrateFromMock();
+                  alert(result.message);
+                }
+              }}
+              className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+            >
+              Örnek Verileri Aktar
+            </button>
+          </div>
+          <div className="p-6">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Bu işlem, kod içerisindeki tüm örnek kullanıcıları ve performans verilerini bağlı olduğunuz Supabase veritabanına kopyalar.
+              Terminaldeki SSL/Karakter hatalarını aşmak için bu butonu kullanabilirsiniz.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {isSysAdmin && (
         <div className="bg-white dark:bg-[#16181d] rounded-2xl border border-gray-100 dark:border-gray-800/60 shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-100 dark:border-gray-800/60 flex items-center gap-3">
             <User className="w-5 h-5 text-indigo-500" />

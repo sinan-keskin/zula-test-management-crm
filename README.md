@@ -1,6 +1,6 @@
-# Zula CRM - Test Yönetimi ve Performans Sistemi
+# Sinan Keskin - Zula CRM Dashboard
 
-![Zula Logo](https://www.madbytegames.com/wp-content/uploads/2022/11/madbyte-logo.png)
+![Zula Logo](https://upload.wikimedia.org/wikipedia/tr/d/d6/Zula_Oyun_Logo.png)
 
 Zula CRM, MadByte Akademi bünyesindeki ekiplerin (Akademi, Hakem, Fedai) performanslarını takip etmek, kullanıcı yönetimini sağlamak ve detaylı raporlar oluşturmak için tasarlanmış profesyonel bir yönetim panelidir.
 

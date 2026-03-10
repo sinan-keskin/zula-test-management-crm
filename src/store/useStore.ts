@@ -91,9 +91,9 @@ interface AppState {
   updateUser: (id: string, user: Partial<User>) => Promise<void>;
   updatePerformance: (userId: string, period: string, perf: Partial<Performance>) => Promise<void>;
   setCurrentUserRoles: (roles: Role[]) => void;
-  addLog: (log: UserLog) => Promise<void>;
   addRole: (role: RoleDefinition) => Promise<void>;
   updateRole: (id: string, role: Partial<RoleDefinition>) => Promise<void>;
+  migrateFromMock: () => Promise<{ success: boolean; message: string }>;
   fetchInitialData: () => Promise<void>;
   isDark: boolean;
   setIsDark: (isDark: boolean) => void;
@@ -316,6 +316,45 @@ export const useStore = create<AppState>((set, get) => ({
   currentUserRoles: [],
   currentUserId: '',
   isAuthenticated: false,
+
+  migrateFromMock: async () => {
+    try {
+      // 1. Kullanıcıları taşı
+      const usersToInsert = mockUsers.map(u => ({
+        ...u,
+        in_game_username: u.inGameUsername,
+        system_username: u.systemUsername,
+        full_name: u.fullName,
+        has_system_access: u.hasSystemAccess
+      }));
+      const { error: userError } = await supabase.from('users').upsert(usersToInsert);
+      if (userError) throw userError;
+
+      // 2. Performansları taşı
+      const perfsToInsert = mockPerformances.map(p => ({
+        ...p,
+        user_id: p.userId,
+        test_participation: p.testParticipation,
+        bug_reports: p.bugReports,
+        referee_performance: p.refereePerformance,
+        referee_everyone_x: p.refereeEveryoneX,
+        referee_sabotage: p.refereeSabotage,
+        discord_pc: p.discordPc,
+        manager_opinion: p.managerOpinion
+      }));
+      const { error: perfError } = await supabase.from('performances').upsert(perfsToInsert);
+      if (perfError) throw perfError;
+
+      // 3. Rolleri taşı
+      const { error: roleError } = await supabase.from('roles').upsert(defaultRoles);
+      if (roleError) throw roleError;
+
+      await get().fetchInitialData();
+      return { success: true, message: 'Veriler başarıyla Supabase\'e aktarıldı!' };
+    } catch (e: any) {
+      return { success: false, message: e.message };
+    }
+  },
 
   fetchInitialData: async () => {
     const { data: users } = await supabase.from('users').select('*');
