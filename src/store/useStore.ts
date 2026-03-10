@@ -128,15 +128,21 @@ export const useStore = create<AppState>((set, get) => ({
 
   fetchInitialData: async () => {
     try {
-      const users = await proxyApi.getData('users');
-      const performances = await proxyApi.getData('performances');
-      const logs = await proxyApi.getData('logs', { order: 'timestamp', ascending: 'false' });
-      const roles = await proxyApi.getData('roles');
+      const usersRes = await proxyApi.getData('users');
+      const performancesRes = await proxyApi.getData('performances');
+      const logsRes = await proxyApi.getData('logs', { order: 'timestamp', ascending: 'false' });
+      const rolesRes = await proxyApi.getData('roles');
 
-      if (users.error || performances.error) {
+      if (usersRes.error) {
+        console.error('Kullanıcı verisi alınamadı:', usersRes.error);
         set({ users: [] });
         return;
       }
+
+      const users = usersRes.data || [];
+      const performances = performancesRes.data || [];
+      const logs = logsRes.data || [];
+      const roles = rolesRes.data || [];
 
       const newState: any = { roles: roles.length > 0 ? roles : defaultRoles };
 

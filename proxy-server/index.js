@@ -49,12 +49,11 @@ app.get('/api/:table', async (req, res) => {
     const { table } = req.params;
     const { select = '*', order, ascending = 'false', ...filters } = req.query;
     
-    console.log(`Veri isteği: ${table}`, filters);
+    console.log(`[GET] ${table}`, filters);
 
     try {
         let query = supabase.from(table).select(select);
         
-        // Dinamik filtreler (örn: email=eq.info@... -> email: info@...)
         Object.entries(filters).forEach(([key, value]) => {
             if (typeof value === 'string' && value.startsWith('eq.')) {
                 query = query.eq(key, value.replace('eq.', ''));
@@ -67,58 +66,69 @@ app.get('/api/:table', async (req, res) => {
         
         const { data, error } = await query;
         if (error) {
-            console.error(`Supabase Hatası [${table}]:`, error.message);
-            return res.status(400).json({ error });
+            console.error(`Supa Get Hatası [${table}]:`, error.message);
+            return res.status(400).json({ data: null, error });
         }
-        res.json(data || []);
+        res.json({ data: data || [], error: null });
     } catch (e) {
-        console.error('Sistem Hatası:', e.message);
-        res.status(500).json({ message: e.message });
+        console.error('Sistem Get Hatası:', e.message);
+        res.status(500).json({ data: null, error: { message: e.message } });
     }
 });
 
 app.post('/api/:table', async (req, res) => {
     const { table } = req.params;
     const payload = req.body;
+    console.log(`[POST/UPSERT] ${table}`, payload);
     
     try {
-        // Performans tablosu için upsert (onConflict: user_id, period) kullanıyoruz
         let query = supabase.from(table).upsert(payload, { 
             onConflict: table === 'performances' ? 'user_id,period' : 'id' 
-        });
+        }).select();
 
         const { data, error } = await query;
         if (error) {
             console.error(`Supa Post/Upsert Hatası [${table}]:`, error.message);
-            return res.status(400).json(error);
+            return res.status(400).json({ data: null, error });
         }
-        res.json(data);
+        res.json({ data, error: null });
     } catch (e) {
-        res.status(500).json({ message: e.message });
+        console.error('Sistem Post Hatası:', e.message);
+        res.status(500).json({ data: null, error: { message: e.message } });
     }
 });
 
 app.patch('/api/:table', async (req, res) => {
     const { table } = req.params;
     const { id, ...payload } = req.body;
+    console.log(`[PATCH] ${table} ID:${id}`, payload);
     
     try {
-        const { data, error } = await supabase.from(table).update(payload).eq('id', id);
-        if (error) return res.status(400).json(error);
-        res.json(data);
+        const { data, error } = await supabase.from(table).update(payload).eq('id', id).select();
+        if (error) {
+            console.error(`Supa Patch Hatası [${table}]:`, error.message);
+            return res.status(400).json({ data: null, error });
+        }
+        res.json({ data, error: null });
     } catch (e) {
-        res.status(500).json({ message: e.message });
+        console.error('Sistem Patch Hatası:', e.message);
+        res.status(500).json({ data: null, error: { message: e.message } });
     }
 });
 
 app.delete('/api/:table/:id', async (req, res) => {
     const { table, id } = req.params;
+    console.log(`[DELETE] ${table} ID:${id}`);
     try {
-        const { data, error } = await supabase.from(table).delete().eq('id', id);
-        if (error) return res.status(400).json(error);
-        res.json(data);
+        const { data, error } = await supabase.from(table).delete().eq('id', id).select();
+        if (error) {
+            console.error(`Supa Delete Hatası [${table}]:`, error.message);
+            return res.status(400).json({ data: null, error });
+        }
+        res.json({ data, error: null });
     } catch (e) {
-        res.status(500).json({ message: e.message });
+        console.error('Sistem Delete Hatası:', e.message);
+        res.status(500).json({ data: null, error: { message: e.message } });
     }
 });
 
