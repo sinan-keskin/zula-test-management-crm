@@ -33,6 +33,15 @@ export const proxyApi = {
         return await res.json();
     },
 
+    async patchData(table, payload) {
+        const res = await fetch(`${PROXY_BASE_URL}/api/${table}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        return await res.json();
+    },
+
     async deleteData(table, id) {
         const res = await fetch(`${PROXY_BASE_URL}/api/${table}/${id}`, {
             method: 'DELETE',
