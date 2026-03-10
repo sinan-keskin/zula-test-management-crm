@@ -50,7 +50,7 @@ export default function UsersPage() {
     const matchesSearch =
       u.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.inGameUsername.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.id.toLowerCase().includes(searchQuery.toLowerCase());
+      u.customId.toLowerCase().includes(searchQuery.toLowerCase());
 
     return matchesGame && matchesRegion && matchesCompetency && matchesRole && matchesStatus && matchesSearch;
   });
@@ -73,7 +73,8 @@ export default function UsersPage() {
 
   const handleAddUser = () => {
     setEditingUser({
-      id: `U${String(users.length + 1).padStart(3, '0')}`,
+      id: crypto.randomUUID(), // Teknik ID sistem tarafından atanır
+      customId: `U${String(users.length + 1).padStart(3, '0')}`, // Kullanıcının göreceği ID
       game: 'ZULA',
       region: 'TR',
       inGameUsername: '',
@@ -357,12 +358,12 @@ export default function UsersPage() {
                     >
                       <td className="px-6 py-4">
                         <button
-                          onClick={(e) => handleCopyId(e, user.id)}
+                          onClick={(e) => handleCopyId(e, user.customId)}
                           className="flex items-center gap-2 font-mono text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                           title={t('copyToClipboard') || 'Copy to clipboard'}
                         >
-                          {user.id}
-                          {copiedId === user.id ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                          {user.customId}
+                          {copiedId === user.customId ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />}
                         </button>
                       </td>
                       <td className="px-6 py-4">

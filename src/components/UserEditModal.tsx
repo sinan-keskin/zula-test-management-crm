@@ -23,7 +23,7 @@ export function UserEditModal({ initialUser, originalUserId, onClose, onSave }: 
 
     const [editingUser, setEditingUser] = useState<User>({ ...initialUser });
     const [deactivationError, setDeactivationError] = useState<string | null>(null);
-    const [validationErrors, setValidationErrors] = useState<{ id?: string, inGameUsername?: string, systemUsername?: string, email?: string, fullName?: string, roles?: string, discordId?: string }>({});
+    const [validationErrors, setValidationErrors] = useState<{ customId?: string, inGameUsername?: string, systemUsername?: string, email?: string, fullName?: string, roles?: string, discordId?: string }>({});
 
     const currentUserLevel = getUserLevel(currentUserRoles);
     const targetUserLevel = getUserLevel(initialUser.roles);
@@ -42,7 +42,7 @@ export function UserEditModal({ initialUser, originalUserId, onClose, onSave }: 
         let hasError = false;
 
         // Validate required fields
-        const requiredFields: (keyof User)[] = ['id', 'inGameUsername', 'systemUsername', 'fullName', 'email'];
+        const requiredFields: (keyof User)[] = ['customId', 'inGameUsername', 'systemUsername', 'fullName', 'email'];
         requiredFields.forEach(field => {
             if (!editingUser[field] || String(editingUser[field]).trim() === '') {
                 errors[field as keyof typeof errors] = t('required') || 'Zorunlu';
@@ -99,8 +99,8 @@ export function UserEditModal({ initialUser, originalUserId, onClose, onSave }: 
         // Validate uniqueness constraints (only if field is not empty / invalid)
         const otherUsers = originalUserId ? users.filter(u => u.id !== originalUserId) : users;
 
-        if (!errors.id && otherUsers.some(u => u.id.toLocaleLowerCase('tr-TR') === editingUser.id.toLocaleLowerCase('tr-TR'))) {
-            errors.id = t('userIdExists') || 'Bu Kullanıcı Kimliği zaten kullanılıyor.';
+        if (!errors.customId && otherUsers.some(u => u.customId.toLocaleLowerCase('tr-TR') === editingUser.customId.toLocaleLowerCase('tr-TR'))) {
+            errors.customId = t('userIdExists') || 'Bu Kullanıcı Kimliği zaten kullanılıyor.';
             hasError = true;
         }
         if (!errors.inGameUsername && otherUsers.some(u => u.inGameUsername.toLocaleLowerCase('tr-TR') === editingUser.inGameUsername.toLocaleLowerCase('tr-TR'))) {
@@ -139,7 +139,7 @@ export function UserEditModal({ initialUser, originalUserId, onClose, onSave }: 
             <div className="relative bg-white dark:bg-[#16181d] rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800/60">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {originalUserId ? (t('editUser') || 'Edit User') : (t('addUser') || 'New User')} - {editingUser.id}
+                        {originalUserId ? (t('editUser') || 'Edit User') : (t('addUser') || 'New User')} - {editingUser.customId}
                         {!canEdit && originalUserId && (
                             <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
                                 <Lock className="w-3 h-3 mr-1" />
@@ -161,18 +161,18 @@ export function UserEditModal({ initialUser, originalUserId, onClose, onSave }: 
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('userId')}</label>
                             <input
                                 type="text"
-                                value={editingUser.id}
+                                value={editingUser.customId}
                                 onChange={(e) => {
-                                    setEditingUser({ ...editingUser, id: e.target.value });
-                                    if (validationErrors.id) setValidationErrors({ ...validationErrors, id: undefined });
+                                    setEditingUser({ ...editingUser, customId: e.target.value });
+                                    if (validationErrors.customId) setValidationErrors({ ...validationErrors, customId: undefined });
                                 }}
                                 className={cn(
                                     "w-full bg-gray-50 dark:bg-[#0f1115] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:text-gray-200 outline-none transition-all font-mono",
-                                    validationErrors.id ? "border-2 border-red-500 focus:ring-red-500" : "border border-gray-200 dark:border-gray-800"
+                                    validationErrors.customId ? "border-2 border-red-500 focus:ring-red-500" : "border border-gray-200 dark:border-gray-800"
                                 )}
                             />
-                            {validationErrors.id && (
-                                <p className="mt-1.5 text-xs text-red-500 font-medium animate-in slide-in-from-top-1">{validationErrors.id}</p>
+                            {validationErrors.customId && (
+                                <p className="mt-1.5 text-xs text-red-500 font-medium animate-in slide-in-from-top-1">{validationErrors.customId}</p>
                             )}
                         </div>
                         <div>

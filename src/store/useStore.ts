@@ -36,6 +36,7 @@ export interface User {
   hasSystemAccess?: boolean;
   passwordResetRequired?: boolean;
   discordId?: string;
+  customId: string;
 }
 
 export interface ParticipationEntry {
@@ -157,7 +158,8 @@ export const useStore = create<AppState>((set, get) => ({
           hasSystemAccess: u.has_system_access,
           passwordResetRequired: u.password_reset_required,
           discordId: u.discord_id || '',
-          statusChangedAt: u.status_changed_at || ''
+          statusChangedAt: u.status_changed_at || '',
+          customId: u.custom_id || u.id // Eğer custom_id yoksa teknik ID'yi göster
         }));
       }
 
@@ -204,7 +206,8 @@ export const useStore = create<AppState>((set, get) => ({
       has_system_access: user.hasSystemAccess,
       password_reset_required: user.passwordResetRequired,
       discord_id: user.discordId,
-      status_changed_at: user.statusChangedAt
+      status_changed_at: user.statusChangedAt,
+      custom_id: user.customId
     });
     get().fetchInitialData();
   },
@@ -231,6 +234,7 @@ export const useStore = create<AppState>((set, get) => ({
     if (updatedUser.hasSystemAccess !== undefined) dbData.has_system_access = updatedUser.hasSystemAccess;
     if (updatedUser.passwordResetRequired !== undefined) dbData.password_reset_required = updatedUser.passwordResetRequired;
     if (updatedUser.discordId !== undefined) dbData.discord_id = updatedUser.discordId;
+    if (updatedUser.customId !== undefined) dbData.custom_id = updatedUser.customId;
 
     try {
       const response = await proxyApi.patchData('users', dbData);
