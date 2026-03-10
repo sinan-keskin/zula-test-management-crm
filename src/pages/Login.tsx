@@ -40,18 +40,20 @@ export default function Login() {
         setIsLoading(true);
 
         // Artificial delay for UX
-        setTimeout(() => {
-            const response = login(username, password);
+        const handleLogin = async () => {
+            const response = await login(username, password);
             if (response.success) {
                 if (response.isFirstLogin) {
                     alert('Bu hesabın ilk girişi! Şifreniz girdiğiniz değer olarak başarıyla belirlendi.');
                 }
-                navigate('/', { replace: true });
+                navigate('/dashboard', { replace: true });
             } else {
                 setError(response.message || 'Giriş başarısız.');
                 setIsLoading(false);
             }
-        }, 800);
+        };
+
+        setTimeout(handleLogin, 800);
     };
 
     return (

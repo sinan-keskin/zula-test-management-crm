@@ -12,7 +12,7 @@ export default function Dashboard() {
   const adminRoles = ['role_sysadmin', 'role_compmgr', 'role_compstaff'];
 
   // Filter out administrative staff for participant statistics
-  const participants = users.filter(u => !u.roles.some(r => adminRoles.includes(r)));
+  const participants = users.filter(u => !u.roles?.some(r => adminRoles.includes(r)));
   const activeParticipants = participants.filter(u => u.status === 'Active');
 
   const participantPerformances = performances.filter(p =>

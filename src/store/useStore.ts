@@ -517,13 +517,20 @@ export const useStore = create<AppState>((set, get) => ({
     }
 
     if (!user.password) {
-      supabase.from('users').update({ password: password }).eq('id', user.id).then(() => get().fetchInitialData());
-      set({
-        currentUserId: user.id,
-        currentUserRoles: user.roles,
-        isAuthenticated: true
-      });
-      return { success: true, isFirstLogin: true };
+      return (async () => {
+        const { error } = await supabase.from('users').update({ password: password }).eq('id', user.id);
+        if (error) {
+          console.error('Şifre güncellenemedi:', error.message);
+          return { success: false, message: 'Şifre kaydedilemedi: ' + error.message };
+        }
+        await get().fetchInitialData();
+        set({
+          currentUserId: user.id,
+          currentUserRoles: user.roles || [],
+          isAuthenticated: true
+        });
+        return { success: true, isFirstLogin: true };
+      })();
     }
 
     if (user.password === password) {
