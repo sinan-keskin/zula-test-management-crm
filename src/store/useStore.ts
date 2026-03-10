@@ -364,7 +364,9 @@ export const useStore = create<AppState>((set, get) => ({
       const { data: roles, error: rError } = await supabase.from('roles').select('*');
 
       if (uError || pError || lError || rError) {
-        console.warn('Supabase veri çekme hatası (Mock veriler kullanılacak):', uError || pError || lError || rError);
+        console.warn('Supabase veri çekme hatası:', uError || pError || lError || rError);
+        // Hata durumunda (SSL vb.) kullanıcı listesini boşaltalım ki mock verilerle giriş yapılmasın
+        set({ users: [] });
         return;
       }
 
@@ -422,7 +424,9 @@ export const useStore = create<AppState>((set, get) => ({
         set(newState);
       }
     } catch (err) {
-      console.warn('Bağlantı kurulamadı (Çevrimdışı/SSL hatası). Yerel veriler kullanılıyor.');
+      console.warn('Güvenli veritabanı bağlantısı kısıtlı. Veriler canlı olarak çekilemiyor.');
+      // Güvenlik için: Veritabanına ulaşılamıyorsa kullanıcı listesini boşaltalım
+      set({ users: [] });
     }
   },
 
