@@ -28,6 +28,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const isDark = useStore(state => state.isDark);
+  const fetchInitialData = useStore(state => state.fetchInitialData);
+
+  React.useEffect(() => {
+    fetchInitialData();
+  }, [fetchInitialData]);
 
   React.useEffect(() => {
     if (isDark) {

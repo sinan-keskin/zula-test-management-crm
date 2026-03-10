@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { supabase } from '../lib/supabase';
 
 export type Game = 'ZULA' | 'ZULA STRIKE' | 'WOLFTEAM';
 export type Region = 'TR' | 'EU' | 'LATAM' | 'AXESO5' | 'MbRussia';
@@ -86,13 +87,14 @@ interface AppState {
   isAuthenticated: boolean;
   login: (username: string, password: string) => { success: boolean; message?: string };
   logout: () => void;
-  addUser: (user: User) => void;
-  updateUser: (id: string, user: Partial<User>) => void;
-  updatePerformance: (userId: string, period: string, perf: Partial<Performance>) => void;
+  addUser: (user: User) => Promise<void>;
+  updateUser: (id: string, user: Partial<User>) => Promise<void>;
+  updatePerformance: (userId: string, period: string, perf: Partial<Performance>) => Promise<void>;
   setCurrentUserRoles: (roles: Role[]) => void;
-  addLog: (log: UserLog) => void;
-  addRole: (role: RoleDefinition) => void;
-  updateRole: (id: string, role: Partial<RoleDefinition>) => void;
+  addLog: (log: UserLog) => Promise<void>;
+  addRole: (role: RoleDefinition) => Promise<void>;
+  updateRole: (id: string, role: Partial<RoleDefinition>) => Promise<void>;
+  fetchInitialData: () => Promise<void>;
   isDark: boolean;
   setIsDark: (isDark: boolean) => void;
 }
@@ -307,81 +309,136 @@ export const useStore = create<AppState>((set, get) => ({
     if (saved) return saved === 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   })(),
-  users: mockUsers,
-  performances: mockPerformances,
+  users: [],
+  performances: [],
   logs: [],
-  roles: defaultRoles,
-  currentUserRoles: ['role_sysadmin'],
+  roles: [],
+  currentUserRoles: [],
   currentUserId: '',
   isAuthenticated: false,
-  addUser: (user) => set((state) => ({ users: [...state.users, user] })),
-  updateUser: (id, updatedUser) => set((state) => ({
-    users: state.users.map(u => {
-      if (u.id !== id) return u;
-      const statusChanged = updatedUser.status && updatedUser.status !== u.status;
-      return {
-        ...u,
-        ...updatedUser,
-        ...(statusChanged ? { statusChangedAt: new Date().toISOString() } : {})
-      };
-    })
-  })),
-  updatePerformance: (userId, period, updatedPerf) => set((state) => {
-    const existingIndex = state.performances.findIndex(p => p.userId === userId && p.period === period);
 
-    if (existingIndex > -1) {
-      const updatedPerformances = [...state.performances];
-      updatedPerformances[existingIndex] = { ...updatedPerformances[existingIndex], ...updatedPerf };
-      return { performances: updatedPerformances };
-    } else {
-      const newRecord: Performance = {
-        userId,
-        period,
-        testParticipation: 0,
-        participationEntries: [],
-        bugReports: 0,
-        suggestions: 0,
-        details: '',
-        support: 0,
-        refereePerformance: 0,
-        refereeEveryoneX: 0,
-        refereeSabotage: 0,
-        refereeEntries: [],
-        refereeDetails: '',
-        qa: 0,
-        discordPc: 0,
-        discordTimeout: 0,
-        discordBan: 0,
-        discordMessageDelete: 0,
-        managerOpinion: 0,
-        notes: '',
-        ...updatedPerf
-      };
-      return { performances: [...state.performances, newRecord] };
-    }
-  }),
+  fetchInitialData: async () => {
+    const { data: users } = await supabase.from('users').select('*');
+    const { data: performances } = await supabase.from('performances').select('*');
+    const { data: logs } = await supabase.from('logs').select('*').order('timestamp', { ascending: false });
+    const { data: roles } = await supabase.from('roles').select('*');
+
+    set({
+      users: users || [],
+      performances: (performances || []).map(p => ({
+        ...p,
+        participationEntries: p.participation_entries,
+        bugReports: p.bug_reports,
+        refereePerformance: p.referee_performance,
+        refereeEveryoneX: p.referee_everyone_x,
+        refereeSabotage: p.referee_sabotage,
+        refereeEntries: p.referee_entries,
+        refereeDetails: p.referee_details,
+        discordPc: p.discord_pc,
+        discordTimeout: p.discord_timeout,
+        discordBan: p.discord_ban,
+        discordMessageDelete: p.discord_message_delete,
+        managerOpinion: p.manager_opinion
+      })),
+      logs: logs || [],
+      roles: roles || defaultRoles
+    });
+  },
+
+  addUser: async (user) => {
+    const { error } = await supabase.from('users').insert([{
+      ...user,
+      in_game_username: user.inGameUsername,
+      system_username: user.systemUsername,
+      full_name: user.fullName,
+      has_system_access: user.hasSystemAccess,
+      password_reset_required: user.passwordResetRequired,
+      discord_id: user.discordId,
+      status_changed_at: user.statusChangedAt
+    }]);
+    if (!error) get().fetchInitialData();
+  },
+
+  updateUser: async (id, updatedUser) => {
+    const statusChanged = updatedUser.status && updatedUser.status !== get().users.find(u => u.id === id)?.status;
+    const updateData = {
+      ...updatedUser,
+      ...(statusChanged ? { status_changed_at: new Date().toISOString() } : {})
+    };
+
+    // Camelcase to snake_case conversion for Supabase
+    const dbData: any = {};
+    if (updateData.inGameUsername) dbData.in_game_username = updateData.inGameUsername;
+    if (updateData.systemUsername) dbData.system_username = updateData.systemUsername;
+    if (updateData.fullName) dbData.full_name = updateData.fullName;
+    if (updateData.hasSystemAccess !== undefined) dbData.has_system_access = updateData.hasSystemAccess;
+    if (updateData.status) dbData.status = updateData.status;
+    if (updateData.email) dbData.email = updateData.email;
+    if (updateData.roles) dbData.roles = updateData.roles;
+    if (dbData.status_changed_at) dbData.status_changed_at = updateData.status_changed_at;
+
+    const { error } = await supabase.from('users').update(dbData).eq('id', id);
+    if (!error) get().fetchInitialData();
+  },
+
+  updatePerformance: async (userId, period, updatedPerf) => {
+    const dbData: any = {
+      user_id: userId,
+      period,
+      ...updatedPerf
+    };
+
+    // Map camcelCase to snake_case for Supabase
+    if (updatedPerf.testParticipation !== undefined) dbData.test_participation = updatedPerf.testParticipation;
+    if (updatedPerf.participationEntries) dbData.participation_entries = updatedPerf.participationEntries;
+    if (updatedPerf.bugReports !== undefined) dbData.bug_reports = updatedPerf.bugReports;
+    if (updatedPerf.refereePerformance !== undefined) dbData.referee_performance = updatedPerf.refereePerformance;
+    if (updatedPerf.refereeEveryoneX !== undefined) dbData.referee_everyone_x = updatedPerf.refereeEveryoneX;
+    if (updatedPerf.refereeSabotage !== undefined) dbData.referee_sabotage = updatedPerf.refereeSabotage;
+    if (updatedPerf.refereeEntries) dbData.referee_entries = updatedPerf.refereeEntries;
+    if (updatedPerf.refereeDetails !== undefined) dbData.referee_details = updatedPerf.refereeDetails;
+    if (updatedPerf.discordPc !== undefined) dbData.discord_pc = updatedPerf.discordPc;
+    if (updatedPerf.discordTimeout !== undefined) dbData.discord_timeout = updatedPerf.discordTimeout;
+    if (updatedPerf.discordBan !== undefined) dbData.discord_ban = updatedPerf.discordBan;
+    if (updatedPerf.discordMessageDelete !== undefined) dbData.discord_message_delete = updatedPerf.discordMessageDelete;
+    if (updatedPerf.managerOpinion !== undefined) dbData.manager_opinion = updatedPerf.managerOpinion;
+
+    const { error } = await supabase.from('performances').upsert([dbData], { onConflict: 'user_id,period' });
+    if (!error) get().fetchInitialData();
+  },
+
   setCurrentUserRoles: (roles) => set({ currentUserRoles: roles }),
-  addLog: (log) => set((state) => ({ logs: [log, ...state.logs] })),
-  addRole: (role) => set((state) => ({ roles: [...state.roles, role] })),
-  updateRole: (id, updatedRole) => set((state) => ({
-    roles: state.roles.map(r => r.id === id ? { ...r, ...updatedRole } : r)
-  })),
-  login: (username, password) => {
-    const state = useStore.getState();
-    const userIndex = state.users.findIndex(u => (u.systemUsername === username || u.email === username) && u.hasSystemAccess);
 
-    if (userIndex === -1) {
+  addLog: async (log) => {
+    const { error } = await supabase.from('logs').insert([{
+      user_id: log.userId,
+      action: log.action,
+      performed_by: log.performedBy
+    }]);
+    if (!error) get().fetchInitialData();
+  },
+
+  addRole: async (role) => {
+    const { error } = await supabase.from('roles').insert([role]);
+    if (!error) get().fetchInitialData();
+  },
+
+  updateRole: async (id, updatedRole) => {
+    const { error } = await supabase.from('roles').update(updatedRole).eq('id', id);
+    if (!error) get().fetchInitialData();
+  },
+
+  login: (username, password) => {
+    const state = get();
+    const user = state.users.find(u => (u.systemUsername === username || u.email === username) && u.hasSystemAccess);
+
+    if (!user) {
       return { success: false, message: 'Kullanıcı bulunamadı veya sistem erişimi yok.' };
     }
 
-    const user = state.users[userIndex];
-
-    // Password setting on first login
     if (!user.password) {
-      const updatedUsers = [...state.users];
-      updatedUsers[userIndex] = { ...user, password: password };
+      supabase.from('users').update({ password: password }).eq('id', user.id).then(() => get().fetchInitialData());
       set({
-        users: updatedUsers,
         currentUserId: user.id,
         currentUserRoles: user.roles,
         isAuthenticated: true
@@ -389,7 +446,6 @@ export const useStore = create<AppState>((set, get) => ({
       return { success: true };
     }
 
-    // Password verification
     if (user.password === password) {
       set({
         currentUserId: user.id,
