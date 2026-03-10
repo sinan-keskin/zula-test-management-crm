@@ -262,9 +262,15 @@ export const useStore = create<AppState>((set, get) => ({
       await get().fetchInitialData();
       return { success: true };
     } catch (err: any) {
-      console.error('Login Hatası:', err);
-      let msg = err.message || 'Giriş başarısız.';
-      if (msg.includes('Invalid login credentials')) msg = 'Hatalı e-posta veya şifre.';
+      console.error('Login Hatası Detayı:', err);
+      let msg = err.message || 'Giriş işlemi sırasında teknik bir hata oluştu.';
+      
+      if (msg === 'Failed to fetch') {
+        msg = 'Bağlantı Hatası: Lütfen "Bağlantıyı Onayla" butonuna tıklayıp açılan sayfada "Gelişmiş -> Devam Et" diyerek sisteme güvenin.';
+      } else if (msg.includes('Invalid login credentials')) {
+        msg = 'Hatalı e-posta veya şifre.';
+      }
+      
       return { success: false, message: msg };
     }
   },
