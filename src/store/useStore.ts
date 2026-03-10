@@ -192,6 +192,7 @@ const mockUsers: User[] = [
     status: 'Active',
     description: 'Main system administrator',
     hasSystemAccess: true,
+    password: 'admin' // Varsayılan şifre eklendi (SSL hatasını baypas etmek için)
   }
 ];
 
