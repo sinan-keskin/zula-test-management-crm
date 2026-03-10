@@ -22,10 +22,13 @@ app.get('/', (req, res) => {
 // --- AUTH PROXY ---
 app.post('/auth/signin', async (req, res) => {
     const { email, password } = req.body;
+    console.log(`Giriş denemesi: ${email}`);
     try {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) console.error('Supabase Auth Hatası:', error.message);
         res.json({ data, error });
     } catch (e) {
+        console.error('Proxy İstek Hatası:', e.message);
         res.status(500).json({ error: { message: e.message } });
     }
 });
