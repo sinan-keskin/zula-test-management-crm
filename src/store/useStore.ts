@@ -241,8 +241,28 @@ export const useStore = create<AppState>((set, get) => ({
       const response = await proxyApi.patchData('users', dbData);
       if (response.error) throw response.error;
       
-      // 2. Sunucudaki son hali doğrula (arka planda)
-      await get().fetchInitialData();
+      // Başarılı: sunucunun döndürdüğü güncel veriyi state'e yaz
+      if (response.data && response.data.length > 0) {
+        const serverUser = response.data[0];
+        set(state => ({
+          users: state.users.map(u => u.id === id ? {
+            ...u,
+            ...updatedUser,
+            // Sunucudan gelen snake_case alanları da güncelle
+            inGameUsername: serverUser.in_game_username ?? u.inGameUsername,
+            systemUsername: serverUser.system_username ?? u.systemUsername,
+            fullName: serverUser.full_name ?? u.fullName,
+            description: serverUser.description ?? u.description,
+            deactivationReason: serverUser.deactivation_reason ?? u.deactivationReason,
+            discordId: serverUser.discord_id ?? u.discordId,
+            hasSystemAccess: serverUser.has_system_access ?? u.hasSystemAccess,
+            passwordResetRequired: serverUser.password_reset_required ?? u.passwordResetRequired,
+            statusChangedAt: serverUser.status_changed_at ?? u.statusChangedAt,
+            customId: serverUser.custom_id ?? u.customId,
+          } : u)
+        }));
+      }
+      // fetchInitialData ÇAĞIRILMIYOR - eski veri geri gelmesin!
     } catch (err) {
       console.error('Kullanıcı güncelleme hatası:', err);
       // Hata durumunda eski state'e geri dön
