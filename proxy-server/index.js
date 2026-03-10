@@ -45,16 +45,32 @@ app.post('/auth/signout', async (req, res) => {
 // --- DATA PROXY ---
 app.get('/api/:table', async (req, res) => {
     const { table } = req.params;
-    const { select = '*', order, ascending = 'false' } = req.query;
+    const { select = '*', order, ascending = 'false', ...filters } = req.query;
     
+    console.log(`Veri isteği: ${table}`, filters);
+
     try {
         let query = supabase.from(table).select(select);
+        
+        // Dinamik filtreler (örn: email=eq.info@... -> email: info@...)
+        Object.entries(filters).forEach(([key, value]) => {
+            if (typeof value === 'string' && value.startsWith('eq.')) {
+                query = query.eq(key, value.replace('eq.', ''));
+            } else {
+                query = query.eq(key, value);
+            }
+        });
+
         if (order) query = query.order(order, { ascending: ascending === 'true' });
         
         const { data, error } = await query;
-        if (error) return res.status(400).json(error);
-        res.json(data);
+        if (error) {
+            console.error(`Supabase Hatası [${table}]:`, error.message);
+            return res.status(400).json({ error });
+        }
+        res.json(data || []);
     } catch (e) {
+        console.error('Sistem Hatası:', e.message);
         res.status(500).json({ message: e.message });
     }
 });
