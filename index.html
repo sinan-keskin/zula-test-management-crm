@@ -5,6 +5,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Zula CRM - Sistem Yönetimi</title>
+  <script type="text/javascript">
+    // URL Temizleyici: Eğer URL içinde ?p= veya çift hash (#/login#/login) varsa temizler
+    (function () {
+      var l = window.location;
+      if (l.search || l.hash.split('#').length > 2) {
+        var cleanPath = l.pathname.replace(/\/$/, '') + '/';
+        var cleanHash = l.hash.split('#').pop() || 'login';
+        window.history.replaceState(null, null, cleanPath + '#/' + cleanHash);
+      }
+    }());
+  </script>
   <link rel="icon" type="image/png" href="https://www.madbytegames.com/wp-content/uploads/2022/11/madbyte-logo.png" />
 </head>
 
