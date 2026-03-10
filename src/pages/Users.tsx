@@ -102,18 +102,14 @@ export default function UsersPage() {
       if (originalUser.status !== savedUser.status) {
         if (savedUser.status === 'Active') {
           addLog({
-            id: Date.now().toString(),
             userId: savedUser.id,
             action: `${now} tarihinde ${adminName} kullanıcısı tarafından aktif olarak eklendi.`,
-            timestamp: new Date().toISOString(),
             performedBy: adminName
           });
         } else {
           addLog({
-            id: Date.now().toString(),
             userId: savedUser.id,
             action: `${now} tarihinde ${savedUser.deactivationReason || 'belirtilmeyen'} sebebiyle ${adminName} kullanıcısı tarafından pasif edildi.`,
-            timestamp: new Date().toISOString(),
             performedBy: adminName
           });
         }
@@ -147,10 +143,8 @@ export default function UsersPage() {
           let newValue = savedUser[field] || 'boş';
 
           addLog({
-            id: Date.now().toString() + Math.random(),
             userId: savedUser.id,
             action: `${now} tarihinde ${adminName} kullanıcısı tarafından, kullanıcının ${oldValue} olan ${getFieldName(field)} ${newValue} olarak değiştirildi.`,
-            timestamp: new Date().toISOString(),
             performedBy: adminName
           });
         }
@@ -161,10 +155,8 @@ export default function UsersPage() {
         const oldVal = originalUser.hasSystemAccess ? 'Var' : 'Yok';
         const newVal = savedUser.hasSystemAccess ? 'Var' : 'Yok';
         addLog({
-          id: Date.now().toString() + Math.random(),
           userId: savedUser.id,
           action: `${now} tarihinde ${adminName} kullanıcısı tarafından, kullanıcının ${oldVal} olan ${getFieldName('hasSystemAccess')} ${newVal} olarak değiştirildi.`,
-          timestamp: new Date().toISOString(),
           performedBy: adminName
         });
       }
@@ -172,10 +164,8 @@ export default function UsersPage() {
       // Check password reset specifically
       if (savedUser.passwordResetRequired && !originalUser.passwordResetRequired) {
         addLog({
-          id: Date.now().toString() + Math.random(),
           userId: savedUser.id,
           action: `${now} tarihinde ${adminName} kullanıcısı tarafından şifresi sıfırlandı.`,
-          timestamp: new Date().toISOString(),
           performedBy: adminName
         });
       }
@@ -188,10 +178,8 @@ export default function UsersPage() {
         const roleDef = allRoles.find(r => r.id === roleId);
         const roleName = t(roleId) || (roleDef ? roleDef.name : roleId);
         addLog({
-          id: Date.now().toString() + Math.random(),
           userId: savedUser.id,
           action: `${now} tarihinde ${adminName} kullanıcısı tarafından ${roleName} rolü eklendi.`,
-          timestamp: new Date().toISOString(),
           performedBy: adminName
         });
       });
@@ -200,10 +188,8 @@ export default function UsersPage() {
         const roleDef = allRoles.find(r => r.id === roleId);
         const roleName = t(roleId) || (roleDef ? roleDef.name : roleId);
         addLog({
-          id: Date.now().toString() + Math.random(),
           userId: savedUser.id,
           action: `${now} tarihinde ${adminName} kullanıcısı tarafından ${roleName} rolü kaldırıldı.`,
-          timestamp: new Date().toISOString(),
           performedBy: adminName
         });
       });
@@ -221,10 +207,8 @@ export default function UsersPage() {
       // Create new user
       addUser(savedUser);
       addLog({
-        id: Date.now().toString(),
         userId: savedUser.id,
         action: `${now} tarihinde ${adminName} kullanıcısı tarafından sisteme eklendi.`,
-        timestamp: new Date().toISOString(),
         performedBy: adminName
       });
     }

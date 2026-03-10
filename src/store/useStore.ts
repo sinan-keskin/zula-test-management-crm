@@ -94,6 +94,7 @@ interface AppState {
   setCurrentUserRoles: (roles: Role[]) => void;
   addRole: (role: RoleDefinition) => Promise<void>;
   updateRole: (id: string, role: Partial<RoleDefinition>) => Promise<void>;
+  addLog: (log: Omit<UserLog, 'id' | 'timestamp'>) => Promise<void>;
   fetchInitialData: () => Promise<void>;
   checkAuth: () => Promise<void>;
   isDark: boolean;
