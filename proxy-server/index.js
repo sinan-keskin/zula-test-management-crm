@@ -12,9 +12,18 @@ const PORT = process.env.PORT || 3001;
 // Supabase Bağlantısı
 const supabaseUrl = (process.env.SUPABASE_URL || 'https://qkrpafzzkfydcytmvgql.supabase.co').trim();
 const supabaseAnonKey = (process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnBhZnp6a2Z5ZGN5dG12Z3FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjk0MjQsImV4cCI6MjA4ODc0NTQyNH0.LtvqeYaGCe5eBy9GAXCB3SKNDzWrjxfZ6DZDGQRoTd4').trim();
+// Service role key: RLS bypass için - Render'da SUPABASE_SERVICE_KEY env variable olarak ekleyin
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || supabaseAnonKey;
 
 console.log(`Supabase Bağlantı Denemesi: ${supabaseUrl}`);
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+console.log(`Service Key mevcut: ${supabaseServiceKey !== supabaseAnonKey ? 'EVET ✓' : 'HAYIR - anon key kullanılıyor (RLS sorununa dikkat!)'}`);
+
+// Auth işlemleri için anon key
+const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey);
+// Data işlemleri için service role key (RLS bypass)
+const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+});
 
 // --- TEST / HEALTH CHECK ---
 app.get('/', (req, res) => {
@@ -26,7 +35,7 @@ app.post('/auth/signin', async (req, res) => {
     const { email, password } = req.body;
     console.log(`Giriş denemesi: ${email}`);
     try {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabaseAuth.auth.signInWithPassword({ email, password });
         if (error) console.error('Supabase Auth Hatası:', error.message);
         res.json({ data, error });
     } catch (e) {
@@ -37,7 +46,7 @@ app.post('/auth/signin', async (req, res) => {
 
 app.post('/auth/signout', async (req, res) => {
     try {
-        const { error } = await supabase.auth.signOut();
+        const { error } = await supabaseAuth.auth.signOut();
         res.json({ error });
     } catch (e) {
         res.status(500).json({ error: { message: e.message } });
