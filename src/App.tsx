@@ -47,7 +47,7 @@ export default function App() {
       <LanguageSelectionOverlay />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<Dashboard />} />
           <Route path="users" element={<UsersPage />} />
